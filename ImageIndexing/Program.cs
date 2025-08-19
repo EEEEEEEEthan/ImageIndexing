@@ -51,9 +51,11 @@ namespace ImageIndexing
 			var finished = false;
 			Console.OutputEncoding = Encoding.UTF8;
 			string path;
-			// 如果args里有path,就用path,否则用当前目录
-			// path转换为绝对路径
-			Start(() => finished = true);
+			if (args != null && args.Length > 0 && !string.IsNullOrWhiteSpace(args[0]))
+				path = Path.GetFullPath(args[0]);
+			else
+				path = Directory.GetCurrentDirectory();
+			Start(path, () => finished = true);
 			while (!finished) Thread.Sleep(100);
 		}
 		static async void Start(string rootPath, Action callback)
@@ -61,8 +63,37 @@ namespace ImageIndexing
 			try
 			{
 				Console.WriteLine("Starting image indexing...");
-				var (success, result) = await Summary(@"D:\Projects\Kingdom\Kingdom\Assets\Game\Resources\Textures\Icon16.png");
-				Console.WriteLine(result);
+				var exts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+				{
+					".jpg",".jpeg",".png",".bmp",".gif",".webp",".tif",".tiff"
+				};
+				int total = 0, successCount = 0, failCount = 0;
+				foreach (var file in Directory.EnumerateFiles(rootPath, "*.*", SearchOption.AllDirectories))
+				{
+					if (!exts.Contains(Path.GetExtension(file))) continue;
+					total++;
+					Console.WriteLine($"Processing: {file}");
+					try
+					{
+						var (success, result) = await Summary(file);
+						if (success)
+						{
+							successCount++;
+							Console.WriteLine($"OK: {file} => {result}");
+						}
+						else
+						{
+							failCount++;
+							Console.WriteLine($"Failed: {file} => {result}");
+						}
+					}
+					catch (Exception ex)
+					{
+						failCount++;
+						Console.WriteLine($"Error processing {file}: {ex.Message}");
+					}
+				}
+				Console.WriteLine($"Done. Total: {total}, Success: {successCount}, Fail: {failCount}");
 				Console.ReadKey();
 			}
 			catch (Exception e)
