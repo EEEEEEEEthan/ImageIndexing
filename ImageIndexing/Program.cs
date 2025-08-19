@@ -302,8 +302,6 @@ namespace ImageIndexing
 						else
 						{
 							Console.WriteLine($"Failed: {result}.");
-							Console.WriteLine("Aborting further requests.");
-							break;
 						}
 					}
 					catch (Exception ex)
