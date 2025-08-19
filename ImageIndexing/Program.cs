@@ -290,13 +290,13 @@ namespace ImageIndexing
 						if (success)
 						{
 							result = result.Replace("\t", " ").Replace("\r", " ").Replace("\n", " ");
-							newSummaries[md5String] = new ImageSummary
+							summaries[md5String] = newSummaries[md5String] = new ImageSummary
 							{
 								filePath = GetRelativePath(rootPath, file),
 								summary = result,
 								md5 = md5String,
 							};
-							ImageSummary.SaveSummaries(dataFilePath, newSummaries);
+							ImageSummary.SaveSummaries(dataFilePath, summaries);
 							Console.WriteLine($"Success, {result}");
 						}
 						else
