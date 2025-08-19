@@ -208,8 +208,6 @@ namespace ImageIndexing
 			Console.WriteLine("    --prompt: 提示词 (可选, 若未提供将交互输入; 也可直接作为位置参数)");
 			Console.WriteLine();
 			Console.WriteLine("  help|-h                                            显示此帮助");
-			Console.WriteLine();
-			Console.WriteLine("留出扩展: 可在命令行中加入 --concurrency, --verbose 等选项");
 		}
 		static async void Search(string prompts, string dataFilePath, Action callback)
 		{
