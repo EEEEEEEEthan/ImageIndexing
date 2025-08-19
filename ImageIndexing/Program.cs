@@ -17,13 +17,15 @@ namespace ImageIndexing
 				foreach (var line in File.ReadAllLines(dataFilePath))
 				{
 					var parts = line.Split('\t');
-					if (parts.Length < 2) continue;
-					var md5 = parts[0].Trim();
+					if (parts.Length < 3) continue;
+					var path = parts[0].Trim();
 					var summary = parts[1].Trim();
+					var md5 = parts[2].Trim();
 					if (string.IsNullOrEmpty(md5) || string.IsNullOrEmpty(summary)) continue;
 					if (dict.ContainsKey(md5)) continue;
 					dict[md5] = new ImageSummary
 					{
+						filePath = path,
 						md5 = md5,
 						summary = summary,
 					};
@@ -42,7 +44,7 @@ namespace ImageIndexing
 			{
 				var summary = kvp.Value;
 				if (string.IsNullOrEmpty(summary.md5) || string.IsNullOrEmpty(summary.summary)) continue;
-				builder.AppendLine($"{summary.md5}\t{summary.summary}");
+				builder.AppendLine($"{summary.filePath}\t{summary.summary}\t{summary.md5}");
 			}
 			try
 			{
@@ -53,6 +55,7 @@ namespace ImageIndexing
 				Console.WriteLine($"Error saving summaries to {dataFilePath}: {ex.Message}");
 			}
 		}
+		public string filePath;
 		public string md5;
 		public string summary;
 	}
@@ -240,10 +243,12 @@ namespace ImageIndexing
 						var (success, result) = await Summary(file);
 						if (success)
 						{
+							result = result.Replace("\t", " ").Replace("\r", " ").Replace("\n", " ");
 							newSummaries[md5String] = new ImageSummary
 							{
-								md5 = md5String,
+								filePath = Path.GetRelativePath(rootPath, file),
 								summary = result,
+								md5 = md5String,
 							};
 							ImageSummary.SaveSummaries(dataFilePath, newSummaries);
 							Console.WriteLine($"Success, {result}");
