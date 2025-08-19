@@ -1,4 +1,4 @@
 .vs/
-ImageIndexing/bin/
+ImageIndexing/bin/debug/
 ImageIndexing/obj/
 config.ini
