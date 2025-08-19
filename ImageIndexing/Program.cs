@@ -259,6 +259,11 @@ namespace ImageIndexing
 					{
 						Console.WriteLine($"Error processing {file}: {ex.Message}");
 					}
+					if (i >= maxRequests)
+					{
+						Console.WriteLine($"Reached max requests limit of {maxRequests}. Stopping.");
+						break;
+					}
 				}
 				Console.WriteLine("Indexing complete. Saving summaries...");
 				ImageSummary.SaveSummaries(dataFilePath, newSummaries);
