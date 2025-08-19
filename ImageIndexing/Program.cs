@@ -203,8 +203,9 @@ namespace ImageIndexing
 			Console.WriteLine("    --data: 数据文件路径 (可选, 默认: 根目录下的 .imageIndex)");
 			Console.WriteLine("    --max:  最多请求次数 (可选, 默认: 1000)");
 			Console.WriteLine();
-			Console.WriteLine("  search [--prompt <提示词>]                        查询");
-			Console.WriteLine("    --prompt: 提示词 (可选, 若未提供将交互输入)");
+			Console.WriteLine("  search [--data <file>] [--prompt <提示词>] <prompt?>    查询");
+			Console.WriteLine("    --data:  数据文件路径 (可选, 默认: 当前目录下的 .imageIndex)");
+			Console.WriteLine("    --prompt: 提示词 (可选, 若未提供将交互输入; 也可直接作为位置参数)");
 			Console.WriteLine();
 			Console.WriteLine("  help|-h                                            显示此帮助");
 			Console.WriteLine();
