@@ -105,7 +105,7 @@ namespace ImageIndexing
 		{
 			var finished = false;
 			Console.OutputEncoding = Encoding.UTF8;
-			Console.WriteLine(string.Join(" ", args));
+			//Console.WriteLine(string.Join(" ", args));
 			if (args != null && args.Length > 0)
 			{
 				var cmd = args[0].ToLowerInvariant();
@@ -166,6 +166,10 @@ namespace ImageIndexing
 								finished = true;
 								break;
 							}
+							else
+							{
+								prompt = a;
+							}
 						}
 						if (string.IsNullOrWhiteSpace(prompt))
 						{
@@ -189,7 +193,7 @@ namespace ImageIndexing
 				throw new ArgumentException("No command provided. Use 'help' to see usage.");
 			}
 			while (!finished) Thread.Sleep(100);
-			Console.ReadKey();
+			//Console.ReadKey();
 		}
 		static void PrintUsage()
 		{
