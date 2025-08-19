@@ -301,6 +301,12 @@ namespace ImageIndexing
 						}
 						else
 						{
+							summaries[md5String] = newSummaries[md5String] = new ImageSummary
+							{
+								filePath = GetRelativePath(rootPath, file),
+								summary = "无法解析的图片",
+								md5 = md5String,
+							};
 							Console.WriteLine($"Failed: {result}.");
 						}
 					}
