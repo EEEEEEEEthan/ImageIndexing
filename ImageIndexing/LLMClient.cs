@@ -37,7 +37,7 @@ namespace ImageIndexing
 			this.apiKey = apiKey;
 			this.model = model;
 		}
-		public async Task<(bool success, string result)> Request(string prompt, string imageFileFullPath)
+		public async Task<(bool success, string result)> RequestImage(string prompt, string imageFileFullPath)
 		{
 			if (!File.Exists(imageFileFullPath)) return (false, "Image file not found.");
 			try

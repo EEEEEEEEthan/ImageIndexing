@@ -201,7 +201,20 @@ namespace ImageIndexing
 			Console.WriteLine();
 			Console.WriteLine("留出扩展: 可在命令行中加入 --concurrency, --verbose 等选项");
 		}
-		static async void Search(string prompts, Action callback) { }
+		static async void Search(string prompts, Action callback)
+		{
+			try
+			{
+				var (success, result) = await client.RequestText("请根据以下提示词查询相关图片,结果每行一个路径,不要说多余的话: " + prompts);
+				Console.WriteLine(result);
+				callback.Invoke();
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine(e);
+				throw e;
+			}
+		}
 		static async void UpdateIndex(string rootPath, string dataFilePath, int maxRequests, Action callback)
 		{
 			try
@@ -289,7 +302,7 @@ namespace ImageIndexing
 			string result = null;
 			for (var i = 0; i < 3; i++)
 			{
-				(success, result) = await client.Request(prompts, filePath);
+				(success, result) = await client.RequestImage(prompts, filePath);
 				if (success) break;
 				await Task.Delay(1000);
 			}
