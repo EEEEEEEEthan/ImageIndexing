@@ -148,12 +148,17 @@ namespace ImageIndexing
 					case "search":
 					{
 						string prompt = null;
+						var dataFile = Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar + defaultDataFile;
 						for (var i = 1; i < args.Length; i++)
 						{
 							var a = args[i];
 							if (a == "--prompt" && i + 1 < args.Length)
 							{
 								prompt = args[++i];
+							}
+							else if (a == "--data" && i + 1 < args.Length)
+							{
+								dataFile = Path.GetFullPath(args[++i]);
 							}
 							else if (a == "--help" || a == "-h")
 							{
@@ -167,7 +172,7 @@ namespace ImageIndexing
 							Console.Write("Enter prompt: ");
 							prompt = Console.ReadLine();
 						}
-						Search(prompt, () => finished = true);
+						Search(prompt, dataFile, () => finished = true);
 						break;
 					}
 					case "help":
@@ -201,10 +206,34 @@ namespace ImageIndexing
 			Console.WriteLine();
 			Console.WriteLine("留出扩展: 可在命令行中加入 --concurrency, --verbose 等选项");
 		}
-		static async void Search(string prompts, Action callback)
+		static async void Search(string prompts, string dataFilePath, Action callback)
 		{
 			try
 			{
+				// First try local search using summaries file
+				if (File.Exists(dataFilePath))
+				{
+					var summaries = ImageSummary.GetSummaries(dataFilePath);
+					var results = new List<string>();
+					var q = prompts?.Trim();
+					if (!string.IsNullOrEmpty(q))
+					{
+						foreach (var kv in summaries)
+						{
+							if (kv.Value.summary != null && kv.Value.summary.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0)
+							{
+								results.Add(kv.Value.filePath);
+							}
+						}
+					}
+					if (results.Count > 0)
+					{
+						foreach (var r in results) Console.WriteLine(r);
+						callback.Invoke();
+						return;
+					}
+				}
+				// Fallback to LLM query when no local matches
 				var (success, result) = await client.RequestText("请根据以下提示词查询相关图片,结果每行一个路径,不要说多余的话: " + prompts);
 				Console.WriteLine(result);
 				callback.Invoke();
