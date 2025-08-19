@@ -205,7 +205,7 @@ namespace ImageIndexing
 			Console.WriteLine();
 			Console.WriteLine("  search [--data <file>] [--prompt <提示词>] <prompt?>    查询");
 			Console.WriteLine("    --data:  数据文件路径 (可选, 默认: 当前目录下的 .imageIndex)");
-			Console.WriteLine("    --prompt: 提示词 (可选, 若未提供将交互输入; 也可直接作为位置参数)");
+			Console.WriteLine("    --prompt: 提示词");
 			Console.WriteLine();
 			Console.WriteLine("  help|-h                                            显示此帮助");
 		}
@@ -216,29 +216,14 @@ namespace ImageIndexing
 				// First try local search using summaries file
 				if (File.Exists(dataFilePath))
 				{
-					var summaries = ImageSummary.GetSummaries(dataFilePath);
-					var results = new List<string>();
-					var q = prompts?.Trim();
-					if (!string.IsNullOrEmpty(q))
-					{
-						foreach (var kv in summaries)
-						{
-							if (kv.Value.summary != null && kv.Value.summary.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0)
-							{
-								results.Add(kv.Value.filePath);
-							}
-						}
-					}
-					if (results.Count > 0)
-					{
-						foreach (var r in results) Console.WriteLine(r);
-						callback.Invoke();
-						return;
-					}
+					var wholeData = File.ReadAllText(dataFilePath);
+					var (success, result) = await client.RequestText("我会给出提示词以及一张路径与简介的映射表,你帮我根据提示词找到对应的路径(可能有多个),结果每行一个路径,不要说多余的话.\n提示词:\n" + prompts + "\n以下是路径到简介的映射表:\n" + wholeData);
+					Console.WriteLine(result);
 				}
-				// Fallback to LLM query when no local matches
-				var (success, result) = await client.RequestText("请根据以下提示词查询相关图片,结果每行一个路径,不要说多余的话: " + prompts);
-				Console.WriteLine(result);
+				else
+				{
+					Console.WriteLine($"Data file not found: {dataFilePath}");
+				}
 				callback.Invoke();
 			}
 			catch (Exception e)
