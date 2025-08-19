@@ -6,8 +6,60 @@ using System.Threading;
 using System.Threading.Tasks;
 namespace ImageIndexing
 {
+	struct ImageSummary
+	{
+		public static Dictionary<string, ImageSummary> GetSummaries(string dataFilePath)
+		{
+			var dict = new Dictionary<string, ImageSummary>(StringComparer.OrdinalIgnoreCase);
+			try
+			{
+				if (!File.Exists(dataFilePath)) return dict;
+				foreach (var line in File.ReadAllLines(dataFilePath))
+				{
+					var parts = line.Split('\t');
+					if (parts.Length < 2) continue;
+					var md5 = parts[0].Trim();
+					var summary = parts[1].Trim();
+					if (string.IsNullOrEmpty(md5) || string.IsNullOrEmpty(summary)) continue;
+					if (dict.ContainsKey(md5)) continue;
+					dict[md5] = new ImageSummary
+					{
+						md5 = md5,
+						summary = summary,
+					};
+				}
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Error reading summaries from {dataFilePath}: {ex.Message}");
+			}
+			return dict;
+		}
+		public static void SaveSummaries(string dataFilePath, Dictionary<string, ImageSummary> summaries)
+		{
+			var builder = new StringBuilder();
+			foreach (var kvp in summaries)
+			{
+				var summary = kvp.Value;
+				if (string.IsNullOrEmpty(summary.md5) || string.IsNullOrEmpty(summary.summary)) continue;
+				builder.AppendLine($"{summary.md5}\t{summary.summary}");
+			}
+			try
+			{
+				File.WriteAllText(dataFilePath, builder.ToString());
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Error saving summaries to {dataFilePath}: {ex.Message}");
+			}
+		}
+		public string md5;
+		public string summary;
+	}
 	class Program
 	{
+		const string defaultDataFile = ".imageIndex";
+		const int maxRequests = 1000;
 		static readonly string prompts;
 		static readonly LLMClient client;
 		static Program()
@@ -50,152 +102,166 @@ namespace ImageIndexing
 		{
 			var finished = false;
 			Console.OutputEncoding = Encoding.UTF8;
-
-			// 参数表（设计）
-			// A 功能: 建立索引 (子命令: build 或 a)
-			//   参数:
-			//     --root <根目录>            (可选, 默认: 当前目录)
-			//     --data <数据文件路径>      (可选, 默认: 根目录下的 .imageIndex 文件)
-			//     --max <最多请求次数>      (可选, 默认: 1000)
-			// B 功能: 查询 (子命令: search 或 b)
-			//   参数:
-			//     --prompt <提示词>          (必需或可通过交互输入)
-			// 留出扩展: 未来可增加 --concurrency, --verbose 等通用选项
-
+			Console.WriteLine(string.Join(" ", args));
 			if (args != null && args.Length > 0)
 			{
 				var cmd = args[0].ToLowerInvariant();
-				if (cmd == "build" || cmd == "a")
+				switch (cmd)
 				{
-					string root = Directory.GetCurrentDirectory();
-					string dataFile = null;
-					int maxRequests = 1000;
-					for (int i = 1; i < args.Length; i++)
+					case "update":
 					{
-						var a = args[i];
-						if (a == "--root" && i + 1 < args.Length)
+						var root = Directory.GetCurrentDirectory();
+						var dataFile = Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar + defaultDataFile;
+						var maxRequests = Program.maxRequests;
+						for (var i = 1; i < args.Length; i++)
 						{
-							root = Path.GetFullPath(args[++i]);
+							var a = args[i];
+							if (a == "--root" && i + 1 < args.Length)
+							{
+								root = Path.GetFullPath(args[++i]);
+							}
+							else if (a == "--data" && i + 1 < args.Length)
+							{
+								dataFile = Path.GetFullPath(args[++i]);
+							}
+							else if (a == "--max" && i + 1 < args.Length && int.TryParse(args[++i], out var m))
+							{
+								maxRequests = m;
+							}
+							else if (a == "--help" || a == "-h")
+							{
+								PrintUsage();
+								finished = true;
+								break;
+							}
+							else
+							{
+								root = Path.GetFullPath(a);
+							}
 						}
-						else if (a == "--data" && i + 1 < args.Length)
-						{
-							dataFile = Path.GetFullPath(args[++i]);
-						}
-						else if (a == "--max" && i + 1 < args.Length && int.TryParse(args[++i], out var m))
-						{
-							maxRequests = m;
-						}
-						else if (a == "--help" || a == "-h")
-						{
-							PrintUsage();
-							finished = true;
-							break;
-						}
+						UpdateIndex(root, dataFile, maxRequests, () => finished = true);
+						break;
 					}
-					if (dataFile == null) dataFile = Path.Combine(root, ".imageIndex");
-					BuildIndex(root, dataFile, maxRequests, () => finished = true);
-				}
-				else if (cmd == "search" || cmd == "b")
-				{
-					string prompt = null;
-					for (int i = 1; i < args.Length; i++)
+					case "search":
 					{
-						var a = args[i];
-						if (a == "--prompt" && i + 1 < args.Length)
+						string prompt = null;
+						for (var i = 1; i < args.Length; i++)
 						{
-							prompt = args[++i];
+							var a = args[i];
+							if (a == "--prompt" && i + 1 < args.Length)
+							{
+								prompt = args[++i];
+							}
+							else if (a == "--help" || a == "-h")
+							{
+								PrintUsage();
+								finished = true;
+								break;
+							}
 						}
-						else if (a == "--help" || a == "-h")
+						if (string.IsNullOrWhiteSpace(prompt))
 						{
-							PrintUsage();
-							finished = true;
-							break;
+							Console.Write("Enter prompt: ");
+							prompt = Console.ReadLine();
 						}
+						Search(prompt, () => finished = true);
+						break;
 					}
-					if (string.IsNullOrWhiteSpace(prompt))
-					{
-						Console.Write("Enter prompt: ");
-						prompt = Console.ReadLine();
-					}
-					Search(prompt, () => finished = true);
-				}
-				else if (cmd == "help" || cmd == "-h")
-				{
-					PrintUsage();
-					finished = true;
-				}
-				else
-				{
-					// 兼容旧行为: 把第一个参数当作路径
-					var path = !string.IsNullOrWhiteSpace(args[0]) ? Path.GetFullPath(args[0]) : Directory.GetCurrentDirectory();
-					Start(path, () => finished = true);
+					case "help":
+					case "-h":
+						PrintUsage();
+						finished = true;
+						break;
+					default:
+						throw new ArgumentException($"Unknown command: {cmd}");
 				}
 			}
 			else
 			{
-				// 无参数: 使用当前目录作为根路径进行 Start
-				var path = Directory.GetCurrentDirectory();
-				Start(path, () => finished = true);
+				throw new ArgumentException("No command provided. Use 'help' to see usage.");
 			}
-
 			while (!finished) Thread.Sleep(100);
 		}
-
 		static void PrintUsage()
 		{
 			Console.WriteLine("Usage:");
-			Console.WriteLine("  build|a [--root <path>] [--data <file>] [--max <n>]    建立索引");
+			Console.WriteLine("  update [--root <path>] [--data <file>] [--max <n>]    建立或更新索引");
 			Console.WriteLine("    --root: 根目录 (可选, 默认当前目录)");
 			Console.WriteLine("    --data: 数据文件路径 (可选, 默认: 根目录下的 .imageIndex)");
 			Console.WriteLine("    --max:  最多请求次数 (可选, 默认: 1000)");
 			Console.WriteLine();
-			Console.WriteLine("  search|b [--prompt <提示词>]                        查询");
+			Console.WriteLine("  search [--prompt <提示词>]                        查询");
 			Console.WriteLine("    --prompt: 提示词 (可选, 若未提供将交互输入)");
 			Console.WriteLine();
 			Console.WriteLine("  help|-h                                            显示此帮助");
 			Console.WriteLine();
 			Console.WriteLine("留出扩展: 可在命令行中加入 --concurrency, --verbose 等选项");
 		}
-		static async void Search(string prompts, Action callback)
-		{
-
-		}
-		static async void BuildIndex(string rootPath, string dataFilePath, int maxRequests, Action callback)
+		static async void Search(string prompts, Action callback) { }
+		static async void UpdateIndex(string rootPath, string dataFilePath, int maxRequests, Action callback)
 		{
 			try
 			{
+				var summaries = ImageSummary.GetSummaries(dataFilePath);
+				var newSummaries = new Dictionary<string, ImageSummary>(StringComparer.OrdinalIgnoreCase);
 				Console.WriteLine("Starting image indexing...");
 				var exts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
 				{
-					".jpg",".jpeg",".png",".bmp",".gif",".webp",".tif",".tiff"
+					".jpg",
+					".jpeg",
+					".png",
+					".bmp",
+					".gif",
+					".webp",
+					".tif",
+					".tiff",
 				};
-				int total = 0, successCount = 0, failCount = 0;
+				var list = new List<string>();
 				foreach (var file in Directory.EnumerateFiles(rootPath, "*.*", SearchOption.AllDirectories))
 				{
 					if (!exts.Contains(Path.GetExtension(file))) continue;
-					total++;
-					Console.WriteLine($"Processing: {file}");
+					list.Add(file);
+				}
+				for (var i = 0; i < list.Count; ++i)
+				{
+					var file = list[i];
+					if (!exts.Contains(Path.GetExtension(file))) continue;
 					try
 					{
+						var currentMd5 = System.Security.Cryptography.MD5.Create().ComputeHash(File.ReadAllBytes(file));
+						var md5String = BitConverter.ToString(currentMd5).Replace("-", "").ToLower();
+						Console.Write($"{i + 1}/{list.Count} {file} ");
+						if (summaries.TryGetValue(md5String, out var existingSummary))
+						{
+							newSummaries[md5String] = existingSummary;
+							Console.WriteLine($"Skipped, {existingSummary.summary}");
+							continue;
+						}
 						var (success, result) = await Summary(file);
 						if (success)
 						{
-							successCount++;
-							Console.WriteLine($"OK: {file} => {result}");
+							newSummaries[md5String] = new ImageSummary
+							{
+								md5 = md5String,
+								summary = result,
+							};
+							ImageSummary.SaveSummaries(dataFilePath, newSummaries);
+							Console.WriteLine($"Success, {result}");
 						}
 						else
 						{
-							failCount++;
-							Console.WriteLine($"Failed: {file} => {result}");
+							Console.WriteLine($"Failed: {result}.");
+							Console.WriteLine("Aborting further requests.");
+							break;
 						}
 					}
 					catch (Exception ex)
 					{
-						failCount++;
 						Console.WriteLine($"Error processing {file}: {ex.Message}");
 					}
 				}
-				Console.WriteLine($"Done. Total: {total}, Success: {successCount}, Fail: {failCount}");
+				Console.WriteLine("Indexing complete. Saving summaries...");
+				ImageSummary.SaveSummaries(dataFilePath, newSummaries);
 				Console.ReadKey();
 			}
 			catch (Exception e)
