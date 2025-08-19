@@ -74,7 +74,7 @@ namespace ImageIndexing
 		url=https://ark.cn-beijing.volces.com/api/v3/chat/completions
 		model=doubao-1-5-thinking-vision-pro-250428
 		apikey=YOUR_API_KEY
-		prompts=这张图里的内容,你抽象成120个以内的汉字,简述其中内容.可以是短句,也可以是逗号隔开的词或者短语.不要出现换行.不要说多余的话,也包括'图中是xxx'的开头都不要说.直接描述
+		prompts=根据这张图里的内容,结合文件路径({path}),猜测其用途,然后抽象成120个以内的汉字,简述其中内容.可以是短句,也可以是逗号隔开的词或者短语.不要出现换行.不要说多余的话,也包括'图中是xxx'的开头都不要说.直接描述
 		");
 			var ini = ReadIni(iniPath);
 			var url = ini.TryGetValue("url", out var value) ? value : "";
@@ -286,7 +286,7 @@ namespace ImageIndexing
 							Console.WriteLine($"Skipped, {existingSummary.summary}");
 							continue;
 						}
-						var (success, result) = await Summary(file);
+						var (success, result) = await Summary(rootPath, file);
 						if (success)
 						{
 							result = result.Replace("\t", " ").Replace("\r", " ").Replace("\n", " ");
@@ -332,13 +332,14 @@ namespace ImageIndexing
 				callback?.Invoke();
 			}
 		}
-		static async Task<(bool success, string result)> Summary(string filePath)
+		static async Task<(bool success, string result)> Summary(string rootPath, string filePath)
 		{
 			var success = false;
 			string result = null;
+			var relativePath = GetRelativePath(rootPath, filePath);
 			for (var i = 0; i < 3; i++)
 			{
-				(success, result) = await client.RequestImage(prompts, filePath);
+				(success, result) = await client.RequestImage(prompts.Replace("{path}", relativePath), filePath);
 				if (success) break;
 				await Task.Delay(1000);
 			}
