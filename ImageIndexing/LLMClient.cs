@@ -85,5 +85,48 @@ namespace ImageIndexing
 				return (false, ex.Message);
 			}
 		}
+		public async Task<(bool success, string result)> RequestText(string prompt)
+		{
+			try
+			{
+				var volcRequest = new
+				{
+					model,
+					messages = new[]
+					{
+						new
+						{
+							role = "user",
+							content = new object[]
+							{
+								new { type = "text", text = prompt, },
+							},
+						},
+					},
+				};
+				using (var client = new HttpClient())
+				{
+					client.DefaultRequestHeaders.Add("Authorization", "Bearer " + apiKey);
+					client.DefaultRequestHeaders.Add("Accept", "application/json");
+					var content = new StringContent(JsonConvert.SerializeObject(volcRequest), Encoding.UTF8, "application/json");
+					var response = await client.PostAsync(url, content);
+					var resp = await response.Content.ReadAsStringAsync();
+					try
+					{
+						var obj = JsonConvert.DeserializeObject<dynamic>(resp);
+						var contentValue = obj.choices[0].message.content;
+						return (true, contentValue.ToString());
+					}
+					catch
+					{
+						return (false, resp);
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				return (false, ex.Message);
+			}
+		}
 	}
 }
