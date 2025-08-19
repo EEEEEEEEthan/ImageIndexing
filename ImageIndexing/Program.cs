@@ -279,20 +279,21 @@ namespace ImageIndexing
 					{
 						var currentMd5 = System.Security.Cryptography.MD5.Create().ComputeHash(File.ReadAllBytes(file));
 						var md5String = BitConverter.ToString(currentMd5).Replace("-", "").ToLower();
-						Console.Write($"{i + 1}/{list.Count} {file} ");
+						var relativePath = GetRelativePath(rootPath, file);
+						Console.Write($"{i + 1}/{list.Count} {relativePath} ");
 						if (summaries.TryGetValue(md5String, out var existingSummary))
 						{
 							newSummaries[md5String] = existingSummary;
 							Console.WriteLine($"Skipped, {existingSummary.summary}");
 							continue;
 						}
-						var (success, result) = await Summary(rootPath, file);
+						var (success, result) = await Summary(relativePath, file);
 						if (success)
 						{
 							result = result.Replace("\t", " ").Replace("\r", " ").Replace("\n", " ");
 							summaries[md5String] = newSummaries[md5String] = new ImageSummary
 							{
-								filePath = GetRelativePath(rootPath, file),
+								filePath = relativePath,
 								summary = result,
 								md5 = md5String,
 							};
@@ -332,14 +333,13 @@ namespace ImageIndexing
 				callback?.Invoke();
 			}
 		}
-		static async Task<(bool success, string result)> Summary(string rootPath, string filePath)
+		static async Task<(bool success, string result)> Summary(string relativePath, string fullPath)
 		{
 			var success = false;
 			string result = null;
-			var relativePath = GetRelativePath(rootPath, filePath);
 			for (var i = 0; i < 3; i++)
 			{
-				(success, result) = await client.RequestImage(prompts.Replace("{path}", relativePath), filePath);
+				(success, result) = await client.RequestImage(prompts.Replace("{path}", relativePath), fullPath);
 				if (success) break;
 				await Task.Delay(1000);
 			}
