@@ -184,6 +184,7 @@ namespace ImageIndexing
 				throw new ArgumentException("No command provided. Use 'help' to see usage.");
 			}
 			while (!finished) Thread.Sleep(100);
+			Console.ReadKey();
 		}
 		static void PrintUsage()
 		{
@@ -272,7 +273,6 @@ namespace ImageIndexing
 				}
 				Console.WriteLine("Indexing complete. Saving summaries...");
 				ImageSummary.SaveSummaries(dataFilePath, newSummaries);
-				Console.ReadKey();
 			}
 			catch (Exception e)
 			{
@@ -315,12 +315,10 @@ namespace ImageIndexing
 				return path;
 			}
 		}
-
 		static string AppendDirectorySeparatorChar(string path)
 		{
 			if (string.IsNullOrEmpty(path)) return Path.DirectorySeparatorChar.ToString();
-			if (path.EndsWith(Path.DirectorySeparatorChar.ToString()) || path.EndsWith(Path.AltDirectorySeparatorChar.ToString()))
-				return path;
+			if (path.EndsWith(Path.DirectorySeparatorChar.ToString()) || path.EndsWith(Path.AltDirectorySeparatorChar.ToString())) return path;
 			return path + Path.DirectorySeparatorChar;
 		}
 	}
