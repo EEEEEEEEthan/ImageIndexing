@@ -246,7 +246,7 @@ namespace ImageIndexing
 							result = result.Replace("\t", " ").Replace("\r", " ").Replace("\n", " ");
 							newSummaries[md5String] = new ImageSummary
 							{
-								filePath = Path.GetRelativePath(rootPath, file),
+								filePath = GetRelativePath(rootPath, file),
 								summary = result,
 								md5 = md5String,
 							};
@@ -294,6 +294,34 @@ namespace ImageIndexing
 				await Task.Delay(1000);
 			}
 			return (success, result);
+		}
+
+		// 兼容旧框架的相对路径实现
+		static string GetRelativePath(string relativeTo, string path)
+		{
+			try
+			{
+				if (string.IsNullOrEmpty(relativeTo)) return path;
+				var fromPath = AppendDirectorySeparatorChar(Path.GetFullPath(relativeTo));
+				var toPath = Path.GetFullPath(path);
+				var fromUri = new Uri(fromPath);
+				var toUri = new Uri(toPath);
+				var relativeUri = fromUri.MakeRelativeUri(toUri);
+				var relativePath = Uri.UnescapeDataString(relativeUri.ToString()).Replace('/', Path.DirectorySeparatorChar);
+				return relativePath;
+			}
+			catch
+			{
+				return path;
+			}
+		}
+
+		static string AppendDirectorySeparatorChar(string path)
+		{
+			if (string.IsNullOrEmpty(path)) return Path.DirectorySeparatorChar.ToString();
+			if (path.EndsWith(Path.DirectorySeparatorChar.ToString()) || path.EndsWith(Path.AltDirectorySeparatorChar.ToString()))
+				return path;
+			return path + Path.DirectorySeparatorChar;
 		}
 	}
 }
