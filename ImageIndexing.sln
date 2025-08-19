@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36408.4 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageIndexing", "ImageIndexing\ImageIndexing.csproj", "{085927FB-7F7A-4138-AC86-B5682AD99158}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{085927FB-7F7A-4138-AC86-B5682AD99158}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{085927FB-7F7A-4138-AC86-B5682AD99158}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{085927FB-7F7A-4138-AC86-B5682AD99158}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{085927FB-7F7A-4138-AC86-B5682AD99158}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {27ABC9A3-D41C-4489-9C55-B8EF64617A70}
+	EndGlobalSection
+EndGlobal
